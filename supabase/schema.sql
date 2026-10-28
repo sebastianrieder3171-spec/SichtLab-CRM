@@ -1,14 +1,14 @@
 -- SICHTFAKTOR Akquise-CRM: Datenbank-Schema
 -- Einmalig im Supabase-Dashboard unter "SQL Editor" einfügen und ausführen.
 -- Vorher in der letzten Zeile die eigene E-Mail-Adresse eintragen.
-
+ 
 -- Teammitglieder: nur diese E-Mail-Adressen sehen und ändern Daten.
 create table if not exists public.team (
   email text primary key
 );
 alter table public.team enable row level security;
 -- Keine Policy auf team: die Tabelle ist nur über das Dashboard änderbar.
-
+ 
 create or replace function public.ist_team()
 returns boolean
 language sql stable security definer
@@ -19,7 +19,7 @@ as $$
     where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
   );
 $$;
-
+ 
 -- Setzt Änderungszeit und Bearbeiter bei jedem Speichern (Grundlage für den Sync).
 create or replace function public.setze_aenderung()
 returns trigger
@@ -31,7 +31,7 @@ begin
   return new;
 end;
 $$;
-
+ 
 create table if not exists public.firmen (
   id uuid primary key,
   name text not null,
@@ -57,7 +57,7 @@ create table if not exists public.firmen (
   updated_by uuid,
   deleted_at timestamptz
 );
-
+ 
 create table if not exists public.aufgaben (
   id uuid primary key,
   firma_id uuid references public.firmen(id),
@@ -70,7 +70,7 @@ create table if not exists public.aufgaben (
   updated_by uuid,
   deleted_at timestamptz
 );
-
+ 
 create table if not exists public.aktivitaeten (
   id uuid primary key,
   firma_id uuid not null references public.firmen(id),
@@ -84,7 +84,7 @@ create table if not exists public.aktivitaeten (
   updated_by uuid,
   deleted_at timestamptz
 );
-
+ 
 create table if not exists public.punkte (
   id uuid primary key,
   firma_id uuid not null references public.firmen(id),
@@ -97,7 +97,7 @@ create table if not exists public.punkte (
   updated_by uuid,
   deleted_at timestamptz
 );
-
+ 
 do $$
 declare t text;
 begin
@@ -110,11 +110,11 @@ begin
     execute format('create index if not exists %I on public.%I (updated_at)', t || '_updated_idx', t);
   end loop;
 end $$;
-
+ 
 create index if not exists aufgaben_firma_idx on public.aufgaben (firma_id);
 create index if not exists aktivitaeten_firma_idx on public.aktivitaeten (firma_id);
 create index if not exists punkte_firma_idx on public.punkte (firma_id);
-
+ 
 -- Live-Updates zwischen Handy und Laptop
 do $$
 declare t text;
@@ -128,6 +128,6 @@ begin
     end if;
   end loop;
 end $$;
-
+ 
 -- Eigene E-Mail-Adresse eintragen (weitere Teammitglieder genauso):
-insert into public.team (email) values ('DEINE-EMAIL@beispiel.at') on conflict do nothing;
+insert into public.team (email) values ('sebastian.rieder.3171@hotmail.com') on conflict do nothing;
