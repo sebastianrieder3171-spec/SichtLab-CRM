@@ -59,6 +59,11 @@ npm run dev
 
 Ohne Supabase-Werte läuft die App im **Demo-Modus** mit Beispieldaten, die nur im Browser gespeichert werden.
 
+## Kosten
+
+Läuft komplett gratis: Supabase Free (500 MB, reicht für viele tausend Kunden) und Cloudflare Pages Free.
+Einschränkungen im Gratis-Tarif: Supabase pausiert das Projekt nach 7 Tagen ohne Nutzung (Daten bleiben, im Dashboard „Restore“ klicken) und macht keine automatischen Backups. Deshalb unter **Einstellungen → Komplette Sicherung herunterladen** regelmäßig eine Sicherung ziehen.
+
 ## Datenschutz
 
 - Daten liegen in der EU (Supabase Frankfurt). Mit Supabase einen Auftragsverarbeitungsvertrag (DPA) abschließen: Dashboard → Organization → Legal Documents.

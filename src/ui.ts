@@ -334,7 +334,7 @@ function settingsView() {
     '<div class="panel"><h3>Synchronisierung</h3><div>' + syncDot() + '</div>' + (s.err ? '<div class="err">' + esc(s.err) + '</div>' : '') + '<div class="small">' + counts + '</div>' + (!ctx.demo ? '<div class="btnrow"><button class="ghost" data-a="syncnow">Jetzt abgleichen</button></div>' : '') + '</div>' +
     '<div class="panel"><h3>Erinnerungen</h3><div class="small">Die App meldet sich 5 Minuten vor einem Rückruf, solange sie geöffnet oder im Hintergrund aktiv ist. Push-Nachrichten bei geschlossener App folgen im nächsten Ausbauschritt. Am iPhone funktionieren Erinnerungen nur, wenn die App zum Home-Bildschirm hinzugefügt wurde.</div><div>Status: <b>' + ({ granted: 'erlaubt', denied: 'blockiert (in den Geräte-Einstellungen freigeben)', default: 'noch nicht gefragt' } as Record<string, string>)[perm] + '</b></div>' + (perm === 'default' ? '<div class="btnrow"><button class="ghost" data-a="notify">Erinnerungen erlauben</button></div>' : '') + '</div>' +
     '<div class="panel"><h3>Als App installieren</h3><div class="small"><b>iPhone:</b> In Safari öffnen, unten auf Teilen tippen, dann „Zum Home-Bildschirm“.<br><b>Android:</b> In Chrome öffnen, Menü ⋮, dann „App installieren“.<br><b>Laptop:</b> In Chrome oder Edge auf das Installieren-Symbol in der Adressleiste klicken, oder einfach als Lesezeichen nutzen.</div></div>' +
-    '<div class="panel"><h3>Daten</h3><div class="btnrow"><button class="ghost" data-a="csv">Firmen als CSV exportieren</button></div><div class="small">Für Excel, als Sicherung oder für eine DSGVO-Auskunft.</div></div></div>'
+    '<div class="panel"><h3>Sicherung und Export</h3><div class="btnrow"><button class="primary" data-a="backup">Komplette Sicherung herunterladen</button><button class="ghost" data-a="csv">Firmen als CSV (Excel)</button></div><div class="small">Die Sicherung enthält alle Firmen, Notizen, Agendapunkte und Aufgaben als Datei. Am besten einmal pro Woche herunterladen und aufbewahren. Die CSV-Datei hilft für Excel oder eine DSGVO-Auskunft.' + (lastBackup() ? ' Letzte Sicherung: ' + lastBackup() + '.' : '') + '</div></div></div>'
 }
 
 /* ---------------- Handy ---------------- */
@@ -462,13 +462,23 @@ function saveFirmFromForm() {
   U.edit = null; U.sel = f.id
   toast(e.isNew ? 'Firma angelegt' : 'Gespeichert')
 }
+function download(name: string, content: string, type: string) {
+  const blob = new Blob([content], { type })
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+}
+function lastBackup() { try { return localStorage.getItem('sf_backup') || '' } catch { return '' } }
+function exportBackup() {
+  const data = { app: 'sichtfaktor-crm', version: 1, erstellt: iso(now()), firmen: store.list('firmen'), aufgaben: store.list('aufgaben'), aktivitaeten: store.list('aktivitaeten'), punkte: store.list('punkte') }
+  download('sichtfaktor-crm-sicherung-' + isoD(now()) + '.json', JSON.stringify(data, null, 1), 'application/json')
+  try { localStorage.setItem('sf_backup', dm(now()) + ' ' + hm(now())) } catch { /* egal */ }
+  toast('Sicherung heruntergeladen')
+}
 function exportCsv() {
   const cols: (keyof Firma)[] = ['name', 'branche', 'ort', 'bundesland', 'adresse', 'telefon', 'email', 'website', 'person', 'rolle', 'status', 'prio', 'umsatz', 'hook', 'quelle_url']
   const q = (v: unknown) => '"' + String(v ?? '').replace(/"/g, '""') + '"'
   const lines = [cols.join(';'), ...Lg.firmen().map(f => cols.map(c => q(c === 'status' ? Lg.ST[f.status]?.l : f[c])).join(';'))]
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sichtfaktor-firmen-' + isoD(now()) + '.csv'
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+  download('sichtfaktor-firmen-' + isoD(now()) + '.csv', '\ufeff' + lines.join('\r\n'), 'text/csv;charset=utf-8')
 }
 
 function onClick(e: MouseEvent) {
@@ -545,6 +555,7 @@ function onClick(e: MouseEvent) {
     case 'syncnow': ctx.syncNow(); toast('Abgleich gestartet'); break
     case 'notify': Notification.requestPermission().then(() => render(true)); break
     case 'csv': exportCsv(); break
+    case 'backup': exportBackup(); break
     case 'logout': ctx.logout(); break
   }
 }
