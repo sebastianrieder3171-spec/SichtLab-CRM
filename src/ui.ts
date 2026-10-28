@@ -442,7 +442,7 @@ async function checkReminders() {
     const f = Lg.firma(t.firma_id)
     const title = 'Rückruf ' + hm(Lg.dueDate(t)) + (f ? ' · ' + f.name : '')
     const body = [f?.person, t.titel].filter(Boolean).join(' · ')
-    try { if (reg) await reg.showNotification(title, { body, tag: t.id, icon: '/icons/icon-192.png' }); else new Notification(title, { body, tag: t.id }) } catch (e) { console.warn(e) }
+    try { if (reg) await reg.showNotification(title, { body, tag: t.id, icon: import.meta.env.BASE_URL + 'icons/icon-192.png' }); else new Notification(title, { body, tag: t.id }) } catch (e) { console.warn(e) }
     sent.push(t.id)
   }
   try { localStorage.setItem('sf_notified', JSON.stringify(sent.slice(-300))) } catch { /* egal */ }

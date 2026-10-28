@@ -69,7 +69,7 @@ function showLogin(client: SupabaseClient, msg = '') {
   document.getElementById('lf-forgot')!.addEventListener('click', async () => {
     const email = (document.getElementById('lf-mail') as HTMLInputElement).value.trim()
     if (!email) { err('Bitte zuerst die E-Mail-Adresse eintragen.'); return }
-    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: location.origin })
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + import.meta.env.BASE_URL })
     err(error ? 'Das hat nicht geklappt: ' + error.message : 'Wir haben dir einen Link zum Zurücksetzen geschickt.')
   })
 }
@@ -81,7 +81,7 @@ function showNewPassword(client: SupabaseClient) {
     const password = (document.getElementById('np-pw') as HTMLInputElement).value
     const { error } = await client.auth.updateUser({ password })
     if (error) { document.getElementById('np-err')!.textContent = 'Das hat nicht geklappt: ' + error.message; return }
-    location.replace(location.origin)
+    location.replace(location.origin + import.meta.env.BASE_URL)
   })
 }
 

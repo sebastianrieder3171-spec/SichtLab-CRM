@@ -16,7 +16,7 @@ Schlanke Web-App für die telefonische Neukundenakquise. Eine App für Laptop un
 | Oberfläche | TypeScript + Vite, als PWA installierbar (`vite-plugin-pwa`) |
 | Lokaler Speicher | IndexedDB (alle Daten liegen auch am Gerät) |
 | Datenbank, Login, Live-Sync | Supabase (Postgres), Region Frankfurt |
-| Hosting | Cloudflare Pages (statische Dateien) |
+| Hosting | GitHub Pages (automatisch per GitHub Actions) |
 | Schriften | lokal eingebunden, keine Anfragen an Google |
 
 Sync: Jede Änderung geht zuerst in den lokalen Speicher und eine Warteschlange (`src/store.ts`). `src/sync.ts` lädt die Warteschlange hoch, holt Änderungen seit dem letzten Abgleich und hört über Supabase Realtime live mit. Bei gleichzeitigen Änderungen gewinnt die zuletzt gespeicherte. Notizen und Anrufe werden nur angehängt, nie überschrieben.
@@ -25,7 +25,7 @@ Sync: Jede Änderung geht zuerst in den lokalen Speicher und eine Warteschlange 
 
 ### 1. Supabase
 
-1. Auf [supabase.com](https://supabase.com) ein Projekt anlegen, Region **Central EU (Frankfurt)**.
+1. Auf [supabase.com](https://supabase.com) ein Projekt anlegen, Region in der EU (z. B. Frankfurt oder Paris).
 2. Im Dashboard unter **SQL Editor** den Inhalt von [`supabase/schema.sql`](supabase/schema.sql) einfügen. In der letzten Zeile die eigene E-Mail-Adresse eintragen, dann **Run**.
 3. Unter **Authentication → Sign In / Providers** den Schalter **Allow new users to sign up** ausschalten.
 4. Unter **Authentication → Users → Add user** sich selbst mit E-Mail und Passwort anlegen (Haken bei *Auto Confirm User*). Weitere Teammitglieder genauso anlegen und ihre E-Mail zusätzlich in die Tabelle `team` eintragen.
@@ -34,14 +34,13 @@ Sync: Jede Änderung geht zuerst in den lokalen Speicher und eine Warteschlange 
 
 Nur E-Mail-Adressen in der Tabelle `team` sehen Daten. Das regeln die Zugriffsregeln (Row Level Security) direkt in der Datenbank.
 
-### 2. Cloudflare Pages
+### 2. Veröffentlichen (GitHub Pages)
 
-1. Auf [dash.cloudflare.com](https://dash.cloudflare.com) unter **Workers & Pages → Create → Pages → Connect to Git** dieses Repository auswählen.
-2. Build command: `npm run build`, Build output directory: `dist`.
-3. Unter **Environment variables** setzen:
-   - `VITE_SUPABASE_URL` = Project URL
-   - `VITE_SUPABASE_ANON_KEY` = anon public key
-4. **Save and Deploy.** Jeder Push auf `main` veröffentlicht automatisch eine neue Version.
+1. Im Repository unter **Settings → Pages** bei *Source* **GitHub Actions** wählen.
+2. Jeder Push auf `main` baut und veröffentlicht die App automatisch (`.github/workflows/deploy.yml`).
+3. Adresse: `https://<benutzer>.github.io/<repository>/`
+
+Project URL und publishable key stehen in `src/config.ts`. Sie sind öffentlich gedacht; geschützt werden die Daten durch Login und Row Level Security. Den *secret key* niemals ins Repository schreiben.
 
 ### 3. Am Handy installieren
 
@@ -61,12 +60,12 @@ Ohne Supabase-Werte läuft die App im **Demo-Modus** mit Beispieldaten, die nur 
 
 ## Kosten
 
-Läuft komplett gratis: Supabase Free (500 MB, reicht für viele tausend Kunden) und Cloudflare Pages Free.
+Läuft komplett gratis: Supabase Free (500 MB, reicht für viele tausend Kunden) und GitHub Pages.
 Einschränkungen im Gratis-Tarif: Supabase pausiert das Projekt nach 7 Tagen ohne Nutzung (Daten bleiben, im Dashboard „Restore“ klicken) und macht keine automatischen Backups. Deshalb unter **Einstellungen → Komplette Sicherung herunterladen** regelmäßig eine Sicherung ziehen.
 
 ## Datenschutz
 
-- Daten liegen in der EU (Supabase Frankfurt). Mit Supabase einen Auftragsverarbeitungsvertrag (DPA) abschließen: Dashboard → Organization → Legal Documents.
+- Daten liegen in der EU (Supabase-Region EU). Mit Supabase einen Auftragsverarbeitungsvertrag (DPA) abschließen: Dashboard → Organization → Legal Documents.
 - Zugang nur für eingetragene Teammitglieder, Verbindung verschlüsselt.
 - Status **Kontakt-Stopp** sperrt das Anrufen. CSV-Export unter Einstellungen hilft bei Auskunftsanfragen.
 - Beim Abmelden werden die Daten auf dem Gerät gelöscht.

@@ -1,7 +1,11 @@
+declare const process: { env: Record<string, string | undefined> }
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const base = process.env.BASE_PATH || '/'
+
 export default defineConfig({
+  base,
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -11,7 +15,8 @@ export default defineConfig({
         short_name: 'Akquise',
         description: 'Telefonakquise: Anrufliste, Rückrufe, Notizen und Pipeline.',
         lang: 'de-AT',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         background_color: '#F5F7F5',
         theme_color: '#1F6B52',
@@ -22,7 +27,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        navigateFallback: '/index.html',
+        navigateFallback: base + 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
       }
     })
