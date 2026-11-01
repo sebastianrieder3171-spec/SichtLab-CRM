@@ -41,6 +41,13 @@ export const outboxDelete = (keys: number[]) => tx('outbox', 'readwrite', s => {
 export const metaGet = <T>(key: string) => tx<T>('meta', 'readonly', s => s.get(key) as IDBRequest<T>)
 export const metaSet = (key: string, v: unknown) => tx('meta', 'readwrite', s => { s.put(v, key) })
 
-export async function clearAll() {
+/** keepOutbox: noch nicht hochgeladene Änderungen behalten (beim Anmelden), damit nichts verloren geht. */
+export async function clearAll(keepOutbox = false) {
+  const keep = keepOutbox ? await outboxAll() : []
   for (const t of [...TABLES, 'outbox', 'meta']) await tx(t, 'readwrite', s => { s.clear() })
+  if (!keep.length) return
+  const tables = new Map<TableName, object[]>()
+  keep.forEach(i => { const a = tables.get(i.table) || []; a.push(i.row); tables.set(i.table, a) })
+  for (const [t, rows] of tables) await putMany(t, rows)
+  await tx('outbox', 'readwrite', s => { keep.forEach(({ key: _k, ...i }) => { void _k; s.add(i) }) })
 }

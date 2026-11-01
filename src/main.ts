@@ -38,7 +38,7 @@ function startApp(client: SupabaseClient, email: string) {
   mount(app, {
     email, demo: false,
     sync: () => ({ s: sync.status, err: sync.lastError }),
-    syncNow: () => { sync.kick(0); sync.pull() },
+    syncNow: () => sync.now(),
     logout: async () => {
       sync.stop()
       await L.clearAll()
@@ -63,7 +63,8 @@ function showLogin(client: SupabaseClient, msg = '') {
     err('Anmeldung läuft …')
     const { data, error } = await client.auth.signInWithPassword({ email, password })
     if (error || !data.session) { err(error?.message === 'Invalid login credentials' ? 'E-Mail oder Passwort stimmt nicht.' : 'Anmeldung fehlgeschlagen: ' + (error?.message || 'unbekannt')); return }
-    await L.clearAll(); await store.loadLocal()
+    // Noch nicht hochgeladene Änderungen behalten, nur den übrigen lokalen Stand verwerfen.
+    await L.clearAll(true); await store.loadLocal()
     startApp(client, data.session.user.email || email)
   })
   document.getElementById('lf-forgot')!.addEventListener('click', async () => {

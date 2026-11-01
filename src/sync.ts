@@ -13,6 +13,8 @@ export class Sync {
   private timer: number | undefined
   private retry = 2000
   private channel: RealtimeChannel | null = null
+  /** false = angemeldet, aber die E-Mail steht nicht in der Tabelle team. Dann liefert die Datenbank still nichts. */
+  private member: boolean | null = null
 
   constructor(private client: SupabaseClient, private onStatus: (s: SyncStatus) => void) {}
 
@@ -36,6 +38,9 @@ export class Sync {
     this.channel = null
   }
 
+  /** Manuell abgleichen: Freigabe neu prüfen (z. B. nachdem die E-Mail in team eingetragen wurde). */
+  now() { this.member = this.member === false ? null : this.member; this.kick(0); this.pull() }
+
   kick(delay = 300) {
     clearTimeout(this.timer)
     this.timer = window.setTimeout(() => this.flush(), delay)
@@ -49,6 +54,7 @@ export class Sync {
       const items = await L.outboxAll()
       if (!items.length) { this.set(navigator.onLine ? 'ok' : 'offline'); return }
       if (!navigator.onLine) { this.set('offline'); return }
+      if (!(await this.checkMember())) return
       this.set('syncing')
       for (const t of TABLES) {
         const byId = new Map<string, Record<string, unknown>>()
@@ -66,7 +72,7 @@ export class Sync {
       this.set('ok')
       if (rest.length) this.again = true
     } catch (e) {
-      const msg = e instanceof Error ? e.message : (e as { message?: string })?.message || String(e)
+      const msg = errText(e)
       console.error('Sync-Fehler', e)
       this.set(navigator.onLine ? 'error' : 'offline', msg)
       this.timer = window.setTimeout(() => this.flush(), this.retry)
@@ -80,6 +86,7 @@ export class Sync {
   async pull() {
     if (!navigator.onLine) return
     try {
+      if (!(await this.checkMember())) return
       for (const t of TABLES) {
         const cursor = (await L.metaGet<string>('cursor_' + t)) || '1970-01-01T00:00:00Z'
         let from = 0
@@ -102,9 +109,22 @@ export class Sync {
       if (this.status !== 'syncing') this.set('ok')
     } catch (e) {
       console.error('Abruf-Fehler', e)
-      const msg = e instanceof Error ? e.message : (e as { message?: string })?.message || String(e)
+      const msg = errText(e)
       this.set(navigator.onLine ? 'error' : 'offline', msg)
     }
+  }
+
+  /** Prüft über public.ist_team(), ob das Konto Daten sehen darf. Ohne Freigabe: klare Meldung statt leerer Liste. */
+  private async checkMember(): Promise<boolean> {
+    if (this.member === true) return true
+    const { data, error } = await this.client.rpc('ist_team')
+    if (error) { console.warn('Team-Prüfung nicht möglich', error); return true }
+    this.member = data === true
+    if (!this.member) {
+      const { data: u } = await this.client.auth.getUser()
+      this.set('error', NOT_TEAM(u.user?.email || ''))
+    }
+    return this.member
   }
 
   private subscribe() {
@@ -118,6 +138,16 @@ export class Sync {
     ch.subscribe(status => { if (status === 'SUBSCRIBED') this.pull() })
     this.channel = ch
   }
+}
+
+const NOT_TEAM = (email: string) =>
+  'Dein Konto ' + (email ? '(' + email + ') ' : '') + 'ist in der Datenbank nicht freigeschaltet. Deshalb wird nichts hochgeladen oder abgerufen. ' +
+  'Im Supabase-Dashboard unter SQL Editor ausführen: insert into public.team (email) values (\'' + (email || 'deine@email') + '\'); Danach hier auf „Jetzt abgleichen“ tippen.'
+
+function errText(e: unknown): string {
+  const err = e as { code?: string; message?: string }
+  if (err?.code === '42501') return 'Keine Schreibrechte in der Datenbank (Row Level Security). Ist die E-Mail-Adresse in der Tabelle team eingetragen?'
+  return e instanceof Error ? e.message : err?.message || String(e)
 }
 
 function clean(row: Record<string, unknown>) {
