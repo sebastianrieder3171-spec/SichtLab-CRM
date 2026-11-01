@@ -70,7 +70,11 @@ function syncDot() {
   const l = ({ ok: 'Synchron', syncing: 'Gleicht ab …', offline: 'Offline', error: 'Sync-Fehler' } as Record<string, string>)[s] || s
   return '<span class="syncdot ' + s + '"><i></i>' + l + '</span>'
 }
-const demoBanner = () => ctx.demo ? '<div class="demo">Demo-Modus: noch keine Datenbank verbunden. Daten bleiben nur auf diesem Gerät.</div>' : ''
+const demoBanner = () => {
+  if (ctx.demo) return '<div class="demo">Demo-Modus: noch keine Datenbank verbunden. Daten bleiben nur auf diesem Gerät.</div>'
+  const s = ctx.sync()
+  return s.s === 'error' ? '<div class="demo">Sync-Fehler: Änderungen kommen nicht auf die anderen Geräte. ' + esc(s.err) + '</div>' : ''
+}
 
 function callLink(f: Firma, cls: string, label: string) {
   const tel = telHref(f.telefon)
